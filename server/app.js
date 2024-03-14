@@ -1,12 +1,44 @@
+// io.use((socket, next) => {
+//   cookieParser()(socket.request, socket.request.res, (err) => {
+//     if (err) return next(err);
+
+//     const token = socket.request.cookies.token;
+//     if (!token) return next(new Error("Authentication Error"));
+
+//     const decoded = jwt.verify(token, secretKeyJWT);
+//     next();
+//   });
+// });
+
+// io.on("connection", (socket) => {
+//   console.log("User Connected", socket.id);
+
+//   socket.on("message", ({ room, message }) => {
+//     console.log({ room, message });
+//     socket.to(room).emit("receive-message", message);
+//   });
+
+//   socket.on("join-room", (room) => {
+//     socket.join(room);
+//     console.log(`User joined room ${room}`);
+//   });
+
+//   socket.on("disconnect", () => {
+//     console.log("User Disconnected", socket.id);
+//   });
+// });
+
 import  express  from "express";
 import { Server} from "socket.io";
 import { createServer } from "http";
 import cors from "cors";
-
-const PORT = 4040;
+import dotenv from "dotenv";
 
 const app = express();
 const server = createServer(app);
+
+app.use(cors());
+dotenv.config();
 
 const io = new Server(server, {
     cors:{
@@ -16,33 +48,25 @@ const io = new Server(server, {
     }
 })
 
-app.get("/", (req,res) =>{
-    res.send("API Working fine")
-})
 
-io.on("connection" , (socket) =>{
-    console.log(`user connected`, socket.id);
-    // socket.emit("hello", `Han bhai chal raha hon ${socket.id}`);
-    // socket.broadcast.emit("hello" , `${socket.id} joined the chat group`);
+io.on("connection", (socket) => {
+  console.log("User connected");
 
-    // socket.on("message", (data) =>{
-    //     console.log(data);
-    //     io.emit("Received-Message", data)
-    // })
+  socket.on("join_room", (room) => {
+    socket.join(room);
+    console.log(`User joined room ${room}`);
+  });
 
-    socket.on("message", ({room, message}) =>{
-        console.log({ room, message });
-        io.to(room).emit("Received-Message" , message) ;  
-    })
+  socket.on("send_message", ({ room, message }) => {
+    io.to(room).emit("new_message", message);
+    console.log("new_message", message);
+  });
 
-    socket.on("disconnect",()=>{
-      console.log(`User disconnected ==> ${socket.id} `);
-    });
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+});
 
-
-})
-
-
-server.listen(PORT, ()=>{
-    console.log(`Server starts at ${PORT}`);
-})
+server.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
+});
